@@ -5,12 +5,14 @@ COPY package.json package-lock.json ./
 COPY client/package.json ./client/package.json
 COPY server/package.json ./server/package.json
 
-# npm ci on bookworm (glibc) will install @rollup/rollup-linux-x64-gnu correctly
 RUN npm ci
 
 COPY client ./client
 COPY server ./server
 COPY shared ./shared
+
+# Explicitly install the rollup Linux glibc native binary needed by Vite
+RUN npm install -w client @rollup/rollup-linux-x64-gnu --no-save
 
 # Build both workspaces
 RUN npm run build
