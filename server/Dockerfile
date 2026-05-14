@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:24-slim
 
 WORKDIR /app
 
@@ -6,7 +6,8 @@ COPY package.json package-lock.json ./
 COPY client/package.json ./client/package.json
 COPY server/package.json ./server/package.json
 
-RUN npm install
+# Install all deps including optional platform binaries (needed by Rollup/Vite)
+RUN npm install --include=optional
 
 COPY client ./client
 COPY server ./server
