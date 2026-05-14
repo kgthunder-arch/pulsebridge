@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: pulsebridge-api
+    runtime: docker
+    rootDir: .
+    dockerfilePath: ./server/Dockerfile
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: CLIENT_URLS
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_MODE
+        value: mock
+      - key: STUN_URLS
+        value: stun:stun.l.google.com:19302,stun:global.stun.twilio.com:3478
