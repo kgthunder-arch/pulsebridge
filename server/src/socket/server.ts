@@ -1,4 +1,5 @@
 import type { Server as HttpServer } from "http";
+import type { Socket } from "socket.io";
 
 import { createClient } from "redis";
 import { Server } from "socket.io";
@@ -17,7 +18,7 @@ type SignalPayload =
   | { type: "answer"; sdp: unknown; callType: "audio" | "video" }
   | { type: "ice-candidate"; candidate: unknown; callType: "audio" | "video" };
 
-const joinConversationRooms = async (socket: Server["sockets"]["sockets"] extends never ? never : any, userId: string) => {
+const joinConversationRooms = async (socket: Socket, userId: string) => {
   const conversationIds = await listConversationIdsForUser(userId);
 
   conversationIds.forEach((conversationId) => {

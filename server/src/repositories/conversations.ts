@@ -171,6 +171,7 @@ export const createConversation = async (input: {
   );
 
   const conversation = conversationResult.rows[0];
+  const conversation = conversationResult.rows[0] as any;
 
   for (const participant of input.participants) {
     await query(
@@ -181,7 +182,7 @@ export const createConversation = async (input: {
     );
   }
 
-  return findConversationById(conversation.id);
+  return findConversationById(String(conversation.id));
 };
 
 export const findConversationById = async (conversationId: string) => {

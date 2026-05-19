@@ -1,6 +1,7 @@
 import type { ConversationRecord } from "../models/Conversation.js";
 import type { MessageRecord } from "../models/Message.js";
 import type { SanitizedUser, UserRecord } from "../models/User.js";
+import { getReactionsForMessages } from "../repositories/reactions.js";
 import { presenceStore } from "../socket/presence.js";
 
 export const sanitizeUser = (user: UserRecord) =>
@@ -40,6 +41,8 @@ export const serializeConversation = async (conversation: ConversationRecord) =>
 };
 
 export const serializeMessage = async (message: MessageRecord) => {
+  const reactions = await getReactionsForMessages([message.id]);
+
   return {
     id: message.id,
     conversationId: message.conversationId,
@@ -56,6 +59,7 @@ export const serializeMessage = async (message: MessageRecord) => {
     algorithm: message.algorithm,
     attachments: message.attachments,
     recipientKeys: message.recipientKeys,
+    reactions,
     expiresAt: message.expiresAt,
     createdAt: message.createdAt
   };

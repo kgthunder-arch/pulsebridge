@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren
 } from "react";
@@ -44,13 +45,15 @@ type AuthResponse = {
 };
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const session = readSession();
-  const [token, setToken] = useState<string | null>(session.token);
-  const [user, setUser] = useState<AuthUser | null>(session.user);
+  const initialSession = useRef(readSession());
+  const [token, setToken] = useState<string | null>(initialSession.current.token);
+  const [user, setUser] = useState<AuthUser | null>(initialSession.current.user);
   const [privateKey, setPrivateKey] = useState<CryptoKey | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const session = initialSession.current;
+
     const bootstrap = async () => {
       if (!session.token) {
         setLoading(false);
@@ -96,7 +99,8 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     };
 
     void bootstrap();
-  }, [session.token]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async (emailOrUsername: string, password: string) => {
     const data = await apiRequest<AuthResponse>("/api/auth/login", {
