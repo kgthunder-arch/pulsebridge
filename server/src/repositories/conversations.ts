@@ -170,7 +170,6 @@ export const createConversation = async (input: {
     ]
   );
 
-  const conversation = conversationResult.rows[0];
   const conversation = conversationResult.rows[0] as any;
 
   for (const participant of input.participants) {

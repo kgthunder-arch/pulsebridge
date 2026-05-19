@@ -26,16 +26,16 @@ export const addReaction = async (
     return null; // already reacted
   }
 
-  const row = result.rows[0];
+  const row = result.rows[0] as any;
   const userResult = await query("select username from users where id = $1::uuid limit 1", [userId]);
 
   return {
-    id: row.id,
-    messageId: row.message_id,
-    userId: row.user_id,
-    username: userResult.rows[0]?.username ?? "Unknown",
-    emoji: row.emoji,
-    createdAt: row.created_at
+    id: (row.id as string),
+    messageId: (row.message_id as string),
+    userId: (row.user_id as string),
+    username: (userResult.rows[0]?.username as string) ?? "Unknown",
+    emoji: (row.emoji as string),
+    createdAt: (row.created_at as string)
   };
 };
 
@@ -68,12 +68,12 @@ export const getReactionsForMessages = async (
     [messageIds]
   );
 
-  return result.rows.map((row) => ({
-    id: row.id,
-    messageId: row.message_id,
-    userId: row.user_id,
-    username: row.username,
-    emoji: row.emoji,
-    createdAt: row.created_at
+  return result.rows.map((row: any) => ({
+    id: (row.id as string),
+    messageId: (row.message_id as string),
+    userId: (row.user_id as string),
+    username: (row.username as string),
+    emoji: (row.emoji as string),
+    createdAt: (row.created_at as string)
   }));
 };

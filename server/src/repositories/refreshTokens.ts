@@ -34,7 +34,7 @@ export const consumeRefreshToken = async (rawToken: string): Promise<string | nu
     [tokenHash]
   );
 
-  return result.rows[0]?.user_id ?? null;
+  return (result.rows[0]?.user_id as string) ?? null;
 };
 
 export const revokeAllRefreshTokensForUser = async (userId: string): Promise<void> => {
