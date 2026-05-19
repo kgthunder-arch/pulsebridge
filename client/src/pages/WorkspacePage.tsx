@@ -2,7 +2,6 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
-  useMemo,
   useRef,
   useState
 } from "react";
@@ -11,6 +10,7 @@ import type { Socket } from "socket.io-client";
 import { ConversationRail } from "../components/chat/ConversationRail";
 import { ConversationStage } from "../components/chat/ConversationStage";
 import { CallOverlay } from "../components/panels/CallOverlay";
+import { IncomingCallDialog } from "../components/panels/IncomingCallDialog";
 import { InsightPanel } from "../components/panels/InsightPanel";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
@@ -22,14 +22,11 @@ import {
 import { createRealtimeSocket } from "../lib/socket";
 import {
   queueDraft,
-  readConversationMoodPreferences,
   readQueuedDrafts,
   readThemePreference,
-  saveConversationMoodPreferences,
   saveQueuedDrafts,
   saveThemePreference
 } from "../lib/storage";
-import { deriveMood, type Mood } from "../lib/theme";
 import type {
   AttachmentPayload,
   AuthUser,
@@ -89,7 +86,6 @@ export const WorkspacePage = () => {
   const [groupName, setGroupName] = useState("");
   const [selectedGroupMembers, setSelectedGroupMembers] = useState<string[]>([]);
   const [themeMode, setThemeMode] = useState<"dark" | "light">(readThemePreference());
-  const [conversationMoods, setConversationMoods] = useState<Record<string, Mood>>(readConversationMoodPreferences());
   const [keyFingerprint, setKeyFingerprint] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     typeof Notification !== "undefined" && Notification.permission === "granted"
@@ -133,10 +129,6 @@ export const WorkspacePage = () => {
       (message) => !message.expiresAt || new Date(message.expiresAt).getTime() > Date.now()
     );
   }, [activeConversationId, messagesByConversation]);
-
-  const autoMood = useMemo(() => deriveMood(activeMessages), [activeMessages]);
-  const mood = activeConversationId ? conversationMoods[activeConversationId] ?? autoMood : autoMood;
-  const isMoodManual = activeConversationId ? Boolean(conversationMoods[activeConversationId]) : false;
 
   const materializeMessage = async (message: ServerMessage) => {
     const content = await decryptMessage(message, privateKey!, user!.id);
@@ -425,14 +417,6 @@ export const WorkspacePage = () => {
     document.documentElement.dataset.mode = themeMode;
     saveThemePreference(themeMode);
   }, [themeMode]);
-
-  useEffect(() => {
-    saveConversationMoodPreferences(conversationMoods);
-  }, [conversationMoods]);
-
-  useEffect(() => {
-    document.documentElement.dataset.mood = mood;
-  }, [mood]);
 
   useEffect(() => {
     if (!user) {
@@ -917,21 +901,6 @@ export const WorkspacePage = () => {
     }
   };
 
-  const setConversationMood = (conversationId: string, nextMood: Mood | "auto") => {
-    setConversationMoods((current) => {
-      if (nextMood === "auto") {
-        const next = { ...current };
-        delete next[conversationId];
-        return next;
-      }
-
-      return {
-        ...current,
-        [conversationId]: nextMood
-      };
-    });
-  };
-
   const startCall = async (nextCallType: CallType) => {
     if (!activeConversation || activeConversation.type !== "direct") {
       return;
@@ -1030,10 +999,6 @@ export const WorkspacePage = () => {
               <span>{keyFingerprint || "Generating secure identity..."}</span>
             </div>
             <div className="settings-metric">
-              <strong>Conversation mood</strong>
-              <span>{isMoodManual ? `${mood} · manual` : `${mood} · auto`}</span>
-            </div>
-            <div className="settings-metric">
               <strong>Friend requests</strong>
               <span>{user.allowFriendRequests ? "Open to new requests" : "Requests paused"}</span>
             </div>
@@ -1107,8 +1072,6 @@ export const WorkspacePage = () => {
           messages={activeMessages}
           typingUsers={typingUsers[activeConversationId] ?? []}
           smartReplies={smartReplies[activeConversationId] ?? []}
-          mood={mood}
-          isMoodManual={isMoodManual}
           onSend={async ({ text, attachments, expiresAt }) => {
             await sendEncryptedMessage(activeConversationId, text, attachments, expiresAt);
           }}
@@ -1123,7 +1086,6 @@ export const WorkspacePage = () => {
           }}
           onStartCall={(nextCallType) => void startCall(nextCallType)}
           onLeaveRoom={leaveRoomConversation}
-          onMoodChange={setConversationMood}
           onReact={(messageId, emoji) => {
             socketRef.current?.emit("reaction:add", {
               conversationId: activeConversationId,
@@ -1170,20 +1132,12 @@ export const WorkspacePage = () => {
       </section>
 
       {incomingCall ? (
-        <div className="incoming-call-banner">
-          <div>
-            <strong>{incomingCall.fromUsername}</strong>
-            <span>{incomingCall.callType} call incoming</span>
-          </div>
-          <div className="button-row">
-            <button className="ghost-button compact" type="button" onClick={declineIncomingCall}>
-              Decline
-            </button>
-            <button className="primary-button compact" type="button" onClick={() => void acceptIncomingCall()}>
-              Answer
-            </button>
-          </div>
-        </div>
+        <IncomingCallDialog
+          fromUsername={incomingCall.fromUsername}
+          callType={incomingCall.callType}
+          onAccept={() => void acceptIncomingCall()}
+          onDecline={declineIncomingCall}
+        />
       ) : null}
 
       <CallOverlay

@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Phone, Send, Video, X, Smile } from "lucide-react";
 
-import type { Mood } from "../../lib/theme";
 import type {
   AttachmentPayload,
   CallType,
@@ -15,8 +14,6 @@ type ConversationStageProps = {
   messages: DecryptedMessage[];
   typingUsers: string[];
   smartReplies: string[];
-  mood: Mood;
-  isMoodManual: boolean;
   onSend: (input: {
     text: string;
     attachments: AttachmentPayload[];
@@ -25,7 +22,6 @@ type ConversationStageProps = {
   onTypingChange: (isTyping: boolean) => void;
   onStartCall: (callType: CallType) => void;
   onLeaveRoom: (conversationId: string) => Promise<void>;
-  onMoodChange: (conversationId: string, mood: Mood | "auto") => void;
   onReact: (messageId: string, emoji: string) => void;
   onRemoveReact: (messageId: string, emoji: string) => void;
 };
@@ -103,13 +99,10 @@ export const ConversationStage = ({
   messages,
   typingUsers,
   smartReplies,
-  mood,
-  isMoodManual,
   onSend,
   onTypingChange,
   onStartCall,
   onLeaveRoom,
-  onMoodChange,
   onReact,
   onRemoveReact
 }: ConversationStageProps) => {
@@ -185,19 +178,6 @@ export const ConversationStage = ({
           </p>
         </div>
         <div className="call-actions">
-          <label className="mood-picker">
-            <span className="eyebrow">Mood</span>
-            <select
-              value={isMoodManual ? mood : "auto"}
-              onChange={(event) => onMoodChange(conversation.id, event.target.value as Mood | "auto")}
-            >
-              <option value="auto">Auto</option>
-              <option value="aurora">Aurora</option>
-              <option value="focus">Focus</option>
-              <option value="warm">Warm</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </label>
           {conversation.type === "room" ? (
             <button
               className="ghost-button compact"
