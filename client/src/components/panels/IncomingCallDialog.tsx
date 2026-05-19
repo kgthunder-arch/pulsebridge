@@ -16,56 +16,34 @@ export const IncomingCallDialog = ({
   onDecline
 }: IncomingCallDialogProps) => {
   return (
-    <div className="incoming-call-overlay">
-      <div className="incoming-call-card">
-        <button
-          className="close-button"
-          type="button"
+    <div className="incoming-call-banner">
+      <div>
+        <strong>{fromUsername}</strong>
+        <span>{callType === "video" ? "Video" : "Voice"} call incoming</span>
+      </div>
+      <div className="button-row">
+        <button 
+          className="ghost-button compact" 
+          type="button" 
           onClick={onDecline}
-          title="Decline"
+          title="Decline call"
         >
-          <X size={24} />
+          <X size={16} />
+          Decline
         </button>
-        
-        <div className="incoming-call-content">
-          <div className="call-avatar">
-            {callType === "video" ? (
-              <Video size={48} />
-            ) : (
-              <Phone size={48} />
-            )}
-          </div>
-          
-          <div className="call-info">
-            <h2>{fromUsername}</h2>
-            <p>{callType === "video" ? "Video call" : "Voice call"} incoming</p>
-          </div>
-        </div>
-
-        <div className="incoming-call-actions">
-          <button
-            className="danger-button large"
-            type="button"
-            onClick={onDecline}
-            title="Decline call"
-          >
-            <X size={24} />
-            Decline
-          </button>
-          <button
-            className="primary-button large"
-            type="button"
-            onClick={onAccept}
-            title="Accept call"
-          >
-            {callType === "video" ? (
-              <Video size={24} />
-            ) : (
-              <Phone size={24} />
-            )}
-            Accept
-          </button>
-        </div>
+        <button 
+          className="primary-button compact" 
+          type="button" 
+          onClick={onAccept}
+          title="Accept call"
+        >
+          {callType === "video" ? (
+            <Video size={16} />
+          ) : (
+            <Phone size={16} />
+          )}
+          Accept
+        </button>
       </div>
     </div>
   );
