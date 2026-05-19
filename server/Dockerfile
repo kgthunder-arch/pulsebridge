@@ -1,6 +1,8 @@
 FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 
+RUN npm cache clean --force
+
 COPY package.json package-lock.json ./
 COPY client/package.json ./client/package.json
 COPY server/package.json ./server/package.json
