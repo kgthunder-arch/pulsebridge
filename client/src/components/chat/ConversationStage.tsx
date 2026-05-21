@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Phone, Send, Video, X, Smile } from "lucide-react";
+import { Camera, CameraOff, Mic, MicOff, Phone, ScreenShare, Send, Video, X, Smile } from "lucide-react";
 
 import type {
   AttachmentPayload,
@@ -14,6 +14,8 @@ type ConversationStageProps = {
   messages: DecryptedMessage[];
   typingUsers: string[];
   smartReplies: string[];
+  localStream: MediaStream | null;
+  callActive: boolean;
   onSend: (input: {
     text: string;
     attachments: AttachmentPayload[];
@@ -99,6 +101,8 @@ export const ConversationStage = ({
   messages,
   typingUsers,
   smartReplies,
+  localStream,
+  callActive,
   onSend,
   onTypingChange,
   onStartCall,
@@ -111,8 +115,43 @@ export const ConversationStage = ({
   const [ephemeralMinutes, setEphemeralMinutes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const directPeer = conversation?.participants.find((participant) => participant.userId !== currentUserId) ?? null;
+
+  const toggleMute = () => {
+    if (!localStream) return;
+    localStream.getAudioTracks().forEach((t) => { t.enabled = isMuted; });
+    setIsMuted((prev) => !prev);
+  };
+
+  const toggleCamera = () => {
+    if (!localStream) return;
+    localStream.getVideoTracks().forEach((t) => { t.enabled = isCameraOff; });
+    setIsCameraOff((prev) => !prev);
+  };
+
+  const startScreenShare = async () => {
+    if (!callActive) return;
+    try {
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const videoTrack = screen.getVideoTracks()[0];
+      if (localStream) {
+        const sender = localStream.getVideoTracks()[0];
+        if (sender) {
+          localStream.removeTrack(sender);
+        }
+        localStream.addTrack(videoTrack);
+        videoTrack.onended = () => {
+          localStream.removeTrack(videoTrack);
+          if (sender) localStream.addTrack(sender);
+        };
+      }
+    } catch {
+      // user cancelled or permission denied
+    }
+  };
 
   const liveTypingText = useMemo(() => {
     if (typingUsers.length === 0) {
@@ -187,6 +226,41 @@ export const ConversationStage = ({
               Leave room
             </button>
           ) : null}
+
+          {/* Mute mic */}
+          <button
+            className={`icon-button call-ctrl${callActive ? (isMuted ? " active-ctrl danger-ctrl" : " active-ctrl") : ""}`}
+            type="button"
+            onClick={toggleMute}
+            disabled={!callActive}
+            title={callActive ? (isMuted ? "Unmute microphone" : "Mute microphone") : "No active call"}
+          >
+            {isMuted ? <MicOff size={17} /> : <Mic size={17} />}
+          </button>
+
+          {/* Camera toggle */}
+          <button
+            className={`icon-button call-ctrl${callActive ? (isCameraOff ? " active-ctrl danger-ctrl" : " active-ctrl") : ""}`}
+            type="button"
+            onClick={toggleCamera}
+            disabled={!callActive}
+            title={callActive ? (isCameraOff ? "Turn camera on" : "Turn camera off") : "No active call"}
+          >
+            {isCameraOff ? <CameraOff size={17} /> : <Camera size={17} />}
+          </button>
+
+          {/* Screen share */}
+          <button
+            className={`icon-button call-ctrl${callActive ? " active-ctrl" : ""}`}
+            type="button"
+            onClick={() => void startScreenShare()}
+            disabled={!callActive}
+            title={callActive ? "Share your screen" : "No active call"}
+          >
+            <ScreenShare size={17} />
+          </button>
+
+          {/* Start voice call */}
           <button
             className="icon-button"
             type="button"
@@ -196,6 +270,8 @@ export const ConversationStage = ({
           >
             <Phone size={18} />
           </button>
+
+          {/* Start video call */}
           <button
             className="icon-button"
             type="button"

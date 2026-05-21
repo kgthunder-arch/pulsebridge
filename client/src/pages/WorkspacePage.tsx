@@ -99,11 +99,14 @@ export const WorkspacePage = () => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [iceConfig, setIceConfig] = useState<IceConfig>({ iceServers: [] });
+  const [installPromptReady, setInstallPromptReady] = useState(false);
   const filteredSearch = useDeferredValue(searchTerm);
   const deferredPeopleSearch = useDeferredValue(peopleSearch);
   const socketRef = useRef<Socket | null>(null);
   const callSessionRef = useRef<{ conversationId: string; targetUserId: string } | null>(null);
   const callManagerRef = useRef<DirectCallManager | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const installPromptRef = useRef<any>(null);
 
   const activeConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
@@ -419,6 +422,21 @@ export const WorkspacePage = () => {
     document.documentElement.dataset.mode = themeMode;
     saveThemePreference(themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    // PWA install prompt
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    if (isStandalone) return;
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e;
+      setInstallPromptReady(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -977,6 +995,23 @@ export const WorkspacePage = () => {
         </div>
         <div className="topbar-actions">
           <span className="status-chip">{navigator.onLine ? "Online sync" : "Offline queueing"}</span>
+          {installPromptReady ? (
+            <button
+              className="install-btn"
+              type="button"
+              onClick={async () => {
+                if (!installPromptRef.current) return;
+                await installPromptRef.current.prompt();
+                const { outcome } = await installPromptRef.current.userChoice;
+                if (outcome === "accepted") {
+                  installPromptRef.current = null;
+                  setInstallPromptReady(false);
+                }
+              }}
+            >
+              ⬇ Install App
+            </button>
+          ) : null}
           <button className="ghost-button compact" type="button" onClick={() => void logout()}>
             Sign out
           </button>
@@ -984,73 +1019,131 @@ export const WorkspacePage = () => {
       </header>
 
       <section className="settings-strip">
-        <article className="settings-card">
-          <div className="section-line">
-            <div>
-              <span className="eyebrow">Settings</span>
-              <h3>{user.username}</h3>
+        <div className="settings-sections-grid">
+
+          {/* 🔐 Identity & Security */}
+          <article className="settings-section">
+            <div className="settings-section-header">
+              <span className="settings-section-icon">🔐</span>
+              <div>
+                <span className="eyebrow">Identity</span>
+                <h3>Security</h3>
+              </div>
             </div>
-            <span className="status-chip">{themeMode === "dark" ? "Dark mode" : "Light mode"}</span>
-          </div>
-          <p className="quiet-copy">
-            Privacy, notifications, and workspace controls now live here instead of the side panel.
-          </p>
-          <div className="settings-grid">
+            <div className="settings-metric">
+              <strong>Signed in as</strong>
+              <span>{user.username}</span>
+            </div>
             <div className="settings-metric">
               <strong>Encryption fingerprint</strong>
-              <span>{keyFingerprint || "Generating secure identity..."}</span>
+              <span className="fingerprint-val">{keyFingerprint || "Generating…"}</span>
             </div>
-            <div className="settings-metric">
-              <strong>Friend requests</strong>
-              <span>{user.allowFriendRequests ? "Open to new requests" : "Requests paused"}</span>
-            </div>
-            <div className="settings-metric">
-              <strong>Read receipts</strong>
-              <span>{user.readReceiptsEnabled ? "Receipts visible" : "Receipts hidden"}</span>
+          </article>
+
+          {/* 🔔 Notifications & Privacy */}
+          <article className="settings-section">
+            <div className="settings-section-header">
+              <span className="settings-section-icon">🔔</span>
+              <div>
+                <span className="eyebrow">Privacy</span>
+                <h3>Notifications</h3>
+              </div>
             </div>
             <div className="settings-metric">
               <strong>Notifications</strong>
-              <span>{notificationsEnabled ? "Browser alerts enabled" : "Browser alerts off"}</span>
+              <span>{notificationsEnabled ? "Enabled" : "Off"}</span>
             </div>
-          </div>
-          <div className="button-row">
+            <div className="settings-metric">
+              <strong>Friend requests</strong>
+              <span>{user.allowFriendRequests ? "Open" : "Paused"}</span>
+            </div>
+            <div className="settings-metric">
+              <strong>Read receipts</strong>
+              <span>{user.readReceiptsEnabled ? "Visible" : "Hidden"}</span>
+            </div>
+            <div className="button-row">
+              <button
+                className="ghost-button compact"
+                type="button"
+                onClick={() => void updatePrivacy({ allowFriendRequests: !user.allowFriendRequests })}
+              >
+                {user.allowFriendRequests ? "Pause requests" : "Allow requests"}
+              </button>
+              <button
+                className="ghost-button compact"
+                type="button"
+                onClick={() => void updatePrivacy({ readReceiptsEnabled: !user.readReceiptsEnabled })}
+              >
+                {user.readReceiptsEnabled ? "Hide receipts" : "Show receipts"}
+              </button>
+              <button
+                className="primary-button compact"
+                type="button"
+                onClick={async () => {
+                  if (typeof Notification === "undefined") return;
+                  const permission = await Notification.requestPermission();
+                  setNotificationsEnabled(permission === "granted");
+                }}
+              >
+                {notificationsEnabled ? "✓ Notifications on" : "Enable notifications"}
+              </button>
+            </div>
+          </article>
+
+          {/* 🎨 Appearance */}
+          <article className="settings-section">
+            <div className="settings-section-header">
+              <span className="settings-section-icon">🎨</span>
+              <div>
+                <span className="eyebrow">Display</span>
+                <h3>Appearance</h3>
+              </div>
+            </div>
+            <div className="settings-metric">
+              <strong>Current theme</strong>
+              <span>{themeMode === "dark" ? "🌙 Dark mode" : "☀️ Light mode"}</span>
+            </div>
             <button
               className="ghost-button compact"
               type="button"
               onClick={() => setThemeMode((current) => (current === "dark" ? "light" : "dark"))}
             >
-              Switch to {themeMode === "dark" ? "light" : "dark"} mode
+              Switch to {themeMode === "dark" ? "light ☀️" : "dark 🌙"}
             </button>
-            <button
-              className="ghost-button compact"
-              type="button"
-              onClick={() => void updatePrivacy({ allowFriendRequests: !user.allowFriendRequests })}
-            >
-              {user.allowFriendRequests ? "Pause friend requests" : "Allow friend requests"}
-            </button>
-            <button
-              className="ghost-button compact"
-              type="button"
-              onClick={() => void updatePrivacy({ readReceiptsEnabled: !user.readReceiptsEnabled })}
-            >
-              {user.readReceiptsEnabled ? "Hide read receipts" : "Enable read receipts"}
-            </button>
-            <button
-              className="primary-button compact"
-              type="button"
-              onClick={async () => {
-                if (typeof Notification === "undefined") {
-                  return;
-                }
+          </article>
 
-                const permission = await Notification.requestPermission();
-                setNotificationsEnabled(permission === "granted");
-              }}
-            >
-              {notificationsEnabled ? "Notifications ready" : "Enable notifications"}
-            </button>
-          </div>
-        </article>
+          {/* 📱 Install App */}
+          <article className="settings-section">
+            <div className="settings-section-header">
+              <span className="settings-section-icon">📱</span>
+              <div>
+                <span className="eyebrow">Progressive Web App</span>
+                <h3>Install App</h3>
+              </div>
+            </div>
+            <p className="quiet-copy">Install PulseBridge on your device for a faster, native-like experience — works offline too.</p>
+            {installPromptReady ? (
+              <button
+                className="install-btn"
+                type="button"
+                onClick={async () => {
+                  if (!installPromptRef.current) return;
+                  await installPromptRef.current.prompt();
+                  const { outcome } = await installPromptRef.current.userChoice;
+                  if (outcome === "accepted") {
+                    installPromptRef.current = null;
+                    setInstallPromptReady(false);
+                  }
+                }}
+              >
+                ⬇ Install PulseBridge
+              </button>
+            ) : (
+              <span className="quiet-copy settings-metric">App is already installed or your browser does not support installation.</span>
+            )}
+          </article>
+
+        </div>
       </section>
 
       <section className="workspace-grid">
@@ -1074,6 +1167,8 @@ export const WorkspacePage = () => {
           messages={activeMessages}
           typingUsers={typingUsers[activeConversationId] ?? []}
           smartReplies={smartReplies[activeConversationId] ?? []}
+          localStream={localStream}
+          callActive={callType !== null}
           onSend={async ({ text, attachments, expiresAt }) => {
             await sendEncryptedMessage(activeConversationId, text, attachments, expiresAt);
           }}
