@@ -1,6 +1,9 @@
 FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 
+# Force cache bust for clean rebuild (May 19, 2026)
+RUN echo "Build: $(date)"
+
 RUN npm cache clean --force
 
 COPY package.json package-lock.json ./

@@ -2,6 +2,7 @@ import {
   startTransition,
   useDeferredValue,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from "react";
@@ -33,6 +34,7 @@ import type {
   CallType,
   ContactRequest,
   Conversation,
+  ConversationParticipant,
   DecryptedMessage,
   IceConfig,
   IncomingCallState,
@@ -906,7 +908,7 @@ export const WorkspacePage = () => {
       return;
     }
 
-    const target = activeConversation.participants.find((participant) => participant.userId !== user!.id);
+    const target = activeConversation.participants.find((participant: ConversationParticipant) => participant.userId !== user!.id);
 
     if (!target) {
       return;
