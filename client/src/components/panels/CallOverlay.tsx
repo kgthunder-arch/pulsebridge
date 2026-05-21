@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Mic, MicOff, PhoneOff, ScreenShare } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  Lock,
+  Mic,
+  MicOff,
+  Maximize2,
+  Minimize2,
+  PhoneOff,
+  ScreenShare
+} from "lucide-react";
 
 import type { CallType } from "../../lib/types";
 
@@ -36,18 +46,17 @@ export const CallOverlay = ({
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement  | null>(null);
 
-  const [isMuted,      setIsMuted]      = useState(false);
-  const [isCamOff,     setIsCamOff]     = useState(false);
-  const [isSharing,    setIsSharing]    = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isMuted,   setIsMuted]   = useState(false);
+  const [isCamOff,  setIsCamOff]  = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [expanded,  setExpanded]  = useState(false);
 
   const isLive = status === "Live";
   const timer  = useElapsedTimer(isLive);
 
   /* ── attach streams ── */
   useEffect(() => {
-    if (localVideoRef.current)  localVideoRef.current.srcObject  = localStream;
+    if (localVideoRef.current) localVideoRef.current.srcObject = localStream;
   }, [localStream]);
 
   useEffect(() => {
@@ -61,32 +70,16 @@ export const CallOverlay = ({
     }
   }, [remoteStream]);
 
-  /* ── auto-hide controls after 3 s of no mouse movement ── */
-  const resetHideTimer = () => {
-    setShowControls(true);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setShowControls(false), 3000);
-  };
-
-  useEffect(() => {
-    if (callType === "video") resetHideTimer();
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [callType]);
-
-  /* ── mic toggle ── */
   const toggleMute = () => {
     localStream?.getAudioTracks().forEach((t) => { t.enabled = isMuted; });
     setIsMuted((p) => !p);
   };
 
-  /* ── camera toggle ── */
   const toggleCam = () => {
     localStream?.getVideoTracks().forEach((t) => { t.enabled = isCamOff; });
     setIsCamOff((p) => !p);
   };
 
-  /* ── screen share ── */
   const toggleScreenShare = async () => {
     if (!localStream) return;
     if (isSharing) {
@@ -112,157 +105,159 @@ export const CallOverlay = ({
 
   if (!callType) return null;
 
-  /* ────────────────────────────── VIDEO CALL ─────────────────────────────── */
+  /* ── Shared security badge ── */
+  const SecurityBadge = () => (
+    <div className="call-security-badge" title="End-to-end encrypted · DTLS-SRTP secured">
+      <Lock size={10} />
+      <span>E2EE · DTLS-SRTP</span>
+    </div>
+  );
+
+  /* ────────────────────── VIDEO CALL: compact floating panel ────────────────── */
   if (callType === "video") {
     return (
-      <div
-        className="call-overlay video-overlay"
-        onMouseMove={resetHideTimer}
-        onTouchStart={resetHideTimer}
-      >
-        {/* Remote full-screen */}
-        <video
-          ref={remoteVideoRef}
-          className="remote-video-full"
-          autoPlay
-          playsInline
-          muted={false}
-        />
+      <div className={`call-float-panel video-float ${expanded ? "expanded" : ""}`}>
         <audio ref={remoteAudioRef} autoPlay playsInline />
 
-        {/* Gradient scrim top */}
-        <div className="call-scrim-top">
-          <div className="call-peer-info">
-            <span className="call-peer-name">{targetLabel}</span>
-            <span className={`call-status-badge ${isLive ? "live" : ""}`}>
-              {isLive ? `🔴 ${timer}` : status}
-            </span>
+        {/* Remote video */}
+        <div className="float-remote-wrap">
+          <video
+            ref={remoteVideoRef}
+            className="float-remote-video"
+            autoPlay
+            playsInline
+            muted={false}
+          />
+
+          {/* Local PiP inside the panel */}
+          <div className="float-pip">
+            <video
+              ref={localVideoRef}
+              className="float-pip-video"
+              autoPlay
+              playsInline
+              muted
+            />
+            {isCamOff && (
+              <div className="float-pip-off">
+                <CameraOff size={14} />
+              </div>
+            )}
+          </div>
+
+          {/* Top info strip */}
+          <div className="float-top-strip">
+            <div className="float-peer-row">
+              <span className="float-peer-name">{targetLabel}</span>
+              {isLive ? (
+                <span className="float-timer live">🔴 {timer}</span>
+              ) : (
+                <span className="float-timer">{status}</span>
+              )}
+            </div>
+            <SecurityBadge />
           </div>
         </div>
 
-        {/* Local PiP */}
-        <div className="pip-container">
-          <video
-            ref={localVideoRef}
-            className="pip-video"
-            autoPlay
-            playsInline
-            muted
-          />
-          {isCamOff && (
-            <div className="pip-cam-off">
-              <CameraOff size={20} />
-            </div>
-          )}
-        </div>
-
-        {/* Controls bar - auto-hides */}
-        <div className={`call-controls-bar ${showControls ? "visible" : "hidden"}`}>
+        {/* Controls row */}
+        <div className="float-controls">
           <button
-            className={`call-ctrl-btn ${isMuted ? "danger" : ""}`}
+            className={`float-btn ${isMuted ? "active-danger" : ""}`}
             onClick={toggleMute}
             title={isMuted ? "Unmute" : "Mute"}
           >
-            {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
-            <span>{isMuted ? "Unmute" : "Mute"}</span>
+            {isMuted ? <MicOff size={15} /> : <Mic size={15} />}
           </button>
 
           <button
-            className={`call-ctrl-btn ${isCamOff ? "danger" : ""}`}
+            className={`float-btn ${isCamOff ? "active-danger" : ""}`}
             onClick={toggleCam}
-            title={isCamOff ? "Turn on camera" : "Turn off camera"}
+            title={isCamOff ? "Camera on" : "Camera off"}
           >
-            {isCamOff ? <CameraOff size={20} /> : <Camera size={20} />}
-            <span>{isCamOff ? "Start cam" : "Stop cam"}</span>
+            {isCamOff ? <CameraOff size={15} /> : <Camera size={15} />}
           </button>
 
           <button
-            className={`call-ctrl-btn end-call-btn`}
-            onClick={onEnd}
-            title="End call"
-          >
-            <PhoneOff size={22} />
-            <span>End</span>
-          </button>
-
-          <button
-            className={`call-ctrl-btn ${isSharing ? "active-share" : ""}`}
+            className={`float-btn ${isSharing ? "active-share" : ""}`}
             onClick={() => void toggleScreenShare()}
             title={isSharing ? "Stop sharing" : "Share screen"}
           >
-            <ScreenShare size={20} />
-            <span>{isSharing ? "Stop share" : "Share"}</span>
+            <ScreenShare size={15} />
+          </button>
+
+          <button
+            className="float-btn"
+            onClick={() => setExpanded((p) => !p)}
+            title={expanded ? "Shrink" : "Expand"}
+          >
+            {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          </button>
+
+          <button
+            className="float-btn end"
+            onClick={onEnd}
+            title="End call"
+          >
+            <PhoneOff size={15} />
           </button>
         </div>
       </div>
     );
   }
 
-  /* ────────────────────────────── VOICE CALL ─────────────────────────────── */
+  /* ────────────────────── VOICE CALL: compact bottom bar ───────────────────── */
   return (
-    <div className="call-overlay voice-overlay">
+    <div className="call-voice-bar">
       <audio ref={remoteAudioRef} autoPlay playsInline />
 
-      <div className="voice-call-card">
-        {/* Animated avatar rings */}
-        <div className="voice-avatar-wrap">
-          <div className={`voice-ring ring-3 ${isLive ? "pulsing" : ""}`} />
-          <div className={`voice-ring ring-2 ${isLive ? "pulsing" : ""}`} />
-          <div className={`voice-ring ring-1 ${isLive ? "pulsing" : ""}`} />
-          <div className="voice-avatar">
-            {targetLabel.charAt(0).toUpperCase()}
-          </div>
-        </div>
+      {/* Avatar */}
+      <div className="voice-bar-avatar">
+        <div className={`voice-bar-ring ${isLive ? "pulsing" : ""}`} />
+        <span>{targetLabel.charAt(0).toUpperCase()}</span>
+      </div>
 
-        {/* Call info */}
-        <div className="voice-call-info">
-          <h2 className="voice-peer-name">{targetLabel}</h2>
-          <div className={`voice-status ${isLive ? "live" : ""}`}>
-            {isLive ? (
-              <>
-                <span className="live-dot" />
-                <span>{timer}</span>
-              </>
-            ) : (
-              <span>{status}</span>
-            )}
-          </div>
-          {isMuted && (
-            <span className="muted-badge">
-              <MicOff size={12} /> Muted
-            </span>
+      {/* Info */}
+      <div className="voice-bar-info">
+        <span className="voice-bar-name">{targetLabel}</span>
+        <div className="voice-bar-meta">
+          {isLive ? (
+            <>
+              <span className="voice-bar-dot" />
+              <span className="voice-bar-timer">{timer}</span>
+            </>
+          ) : (
+            <span className="voice-bar-status">{status}</span>
           )}
+          {isMuted && <span className="voice-bar-muted"><MicOff size={10} /> Muted</span>}
         </div>
+        <SecurityBadge />
+      </div>
 
-        {/* Voice controls */}
-        <div className="voice-controls">
-          <button
-            className={`voice-ctrl-btn ${isMuted ? "danger" : ""}`}
-            onClick={toggleMute}
-            title={isMuted ? "Unmute" : "Mute"}
-          >
-            {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
-            <span>{isMuted ? "Unmute" : "Mute"}</span>
-          </button>
+      {/* Controls */}
+      <div className="voice-bar-controls">
+        <button
+          className={`voice-bar-btn ${isMuted ? "danger" : ""}`}
+          onClick={toggleMute}
+          title={isMuted ? "Unmute" : "Mute"}
+        >
+          {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+        </button>
 
-          <button
-            className="voice-ctrl-btn end"
-            onClick={onEnd}
-            title="End call"
-          >
-            <PhoneOff size={24} />
-            <span>End call</span>
-          </button>
+        <button
+          className={`voice-bar-btn ${isSharing ? "share" : ""}`}
+          onClick={() => void toggleScreenShare()}
+          title={isSharing ? "Stop sharing" : "Share screen"}
+        >
+          <ScreenShare size={16} />
+        </button>
 
-          <button
-            className={`voice-ctrl-btn ${isSharing ? "active-share" : ""}`}
-            onClick={() => void toggleScreenShare()}
-            title="Share screen"
-          >
-            <ScreenShare size={22} />
-            <span>Share</span>
-          </button>
-        </div>
+        <button
+          className="voice-bar-btn end"
+          onClick={onEnd}
+          title="End call"
+        >
+          <PhoneOff size={16} />
+        </button>
       </div>
     </div>
   );
