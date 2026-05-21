@@ -286,6 +286,180 @@ textarea {
   margin: 0;
 }
 
+/* ── Shake animation (wrong password) ── */
+@keyframes shake {
+  0%,  100% { transform: translateX(0); }
+  15%        { transform: translateX(-8px); }
+  30%        { transform: translateX(8px); }
+  45%        { transform: translateX(-6px); }
+  60%        { transform: translateX(6px); }
+  75%        { transform: translateX(-3px); }
+  90%        { transform: translateX(3px); }
+}
+
+.shake {
+  animation: shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* ── Unlock page: icon ── */
+.unlock-icon-wrap {
+  width: 3.8rem;
+  height: 3.8rem;
+  border-radius: 50%;
+  background: rgba(126, 240, 200, 0.12);
+  border: 1px solid rgba(126, 240, 200, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin: 0 auto 0.25rem;
+  transition: background 250ms ease, border-color 250ms ease;
+}
+
+.unlock-icon-wrap.error {
+  background: rgba(255, 109, 127, 0.15);
+  border-color: rgba(255, 109, 127, 0.4);
+  color: var(--danger);
+  animation: shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* ── Unlock page: header block ── */
+.unlock-header {
+  text-align: center;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.unlock-header h2 {
+  margin: 0.2rem 0 0;
+  font-size: 1.5rem;
+}
+
+.unlock-header p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── Password input with eye toggle ── */
+.unlock-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.unlock-input-wrap input {
+  width: 100%;
+  padding-right: 2.8rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.85rem 2.8rem 0.85rem 1.1rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.unlock-input-wrap input:focus {
+  outline: none;
+  border-color: rgba(126, 240, 200, 0.4);
+  box-shadow: 0 0 0 3px rgba(126, 240, 200, 0.08);
+}
+
+.unlock-input-wrap.has-error input {
+  border-color: rgba(255, 109, 127, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(255, 109, 127, 0.1) !important;
+  color: var(--danger);
+}
+
+.unlock-eye-btn {
+  position: absolute;
+  right: 0.85rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 50%;
+  transition: color 150ms ease;
+}
+
+.unlock-eye-btn:hover {
+  color: var(--text);
+}
+
+/* ── Error row ── */
+.unlock-error-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 109, 127, 0.1);
+  border: 1px solid rgba(255, 109, 127, 0.28);
+  animation: fade-in 200ms ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.unlock-error-icon {
+  color: var(--danger);
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.unlock-error-msg {
+  color: var(--danger);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.unlock-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+}
+
+/* ── Failed attempts counter ── */
+.unlock-attempts {
+  font-size: 0.78rem;
+  color: var(--danger);
+  text-align: center;
+  margin: 0;
+  opacity: 0.75;
+}
+
+/* ── Submit button spinner ── */
+.btn-spinner {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid rgba(6, 18, 27, 0.3);
+  border-top-color: #06121b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Unlock card layout override ── */
+.unlock-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+
 .loading-shell {
   flex-direction: column;
   gap: 1rem;

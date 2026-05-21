@@ -99,23 +99,27 @@ export const unlockPrivateKey = async (
   privateKeyIv: string,
   password: string
 ) => {
-  const aesKey = await derivePasswordKey(password, privateKeySalt);
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: new Uint8Array(fromBase64(privateKeyIv)) },
-    aesKey,
-    fromBase64(encryptedPrivateKey)
-  );
+  try {
+    const aesKey = await derivePasswordKey(password, privateKeySalt);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: new Uint8Array(fromBase64(privateKeyIv)) },
+      aesKey,
+      fromBase64(encryptedPrivateKey)
+    );
 
-  return crypto.subtle.importKey(
-    "pkcs8",
-    decrypted,
-    {
-      name: "RSA-OAEP",
-      hash: "SHA-256"
-    },
-    true,
-    ["decrypt"]
-  );
+    return crypto.subtle.importKey(
+      "pkcs8",
+      decrypted,
+      {
+        name: "RSA-OAEP",
+        hash: "SHA-256"
+      },
+      true,
+      ["decrypt"]
+    );
+  } catch {
+    throw new Error("Incorrect password. Please try again.");
+  }
 };
 
 const importPublicKey = (value: string) =>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +13,8 @@ export const AuthPage = () => {
   const [preferredLanguage, setPreferredLanguage] = useState("en");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [shake, setShake] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,9 +33,18 @@ export const AuthPage = () => {
         });
       }
     } catch (submissionError) {
-      setError(
-        submissionError instanceof Error ? submissionError.message : "Unable to continue."
-      );
+      const raw = submissionError instanceof Error ? submissionError.message : "Unable to continue.";
+      // Map common server messages to friendlier ones
+      const friendly = raw.toLowerCase().includes("invalid") || raw.toLowerCase().includes("incorrect") || raw.toLowerCase().includes("unauthorized") || raw.toLowerCase().includes("401")
+        ? "Incorrect email/username or password. Please try again."
+        : raw;
+      setError(friendly);
+      // Clear password on failed login attempt and shake
+      if (mode === "login") {
+        setPassword("");
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +92,7 @@ export const AuthPage = () => {
             </button>
           </div>
 
-          <form className="auth-form" onSubmit={handleSubmit}>
+          <form className={`auth-form ${shake ? "shake" : ""}`} onSubmit={handleSubmit}>
             <label>
               <span>{mode === "login" ? "Email or username" : "Email"}</span>
               <input
@@ -105,13 +117,25 @@ export const AuthPage = () => {
 
             <label>
               <span>Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••••••"
-                required
-              />
+              <div className={`unlock-input-wrap ${error && mode === "login" ? "has-error" : ""}`}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => { setPassword(event.target.value); if (error) setError(""); }}
+                  placeholder="••••••••"
+                  required
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                />
+                <button
+                  type="button"
+                  className="unlock-eye-btn"
+                  onClick={() => setShowPassword((p) => !p)}
+                  tabIndex={-1}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </label>
 
             {mode === "register" ? (
@@ -131,10 +155,17 @@ export const AuthPage = () => {
               </label>
             ) : null}
 
-            {error ? <p className="form-error">{error}</p> : null}
+            {error ? (
+              <div className="unlock-error-row">
+                <span className="unlock-error-icon">✕</span>
+                <span className="unlock-error-msg">{error}</span>
+              </div>
+            ) : null}
 
             <button className="primary-button" type="submit" disabled={submitting}>
-              {submitting ? "Securing session..." : mode === "login" ? "Unlock workspace" : "Create encrypted profile"}
+              {submitting
+                ? (mode === "login" ? "Signing in…" : "Creating account…")
+                : (mode === "login" ? "Unlock workspace" : "Create encrypted profile")}
             </button>
           </form>
         </div>
