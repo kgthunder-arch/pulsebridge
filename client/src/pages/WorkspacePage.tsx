@@ -1228,7 +1228,7 @@ export const WorkspacePage = () => {
         />
       </section>
 
-      {incomingCall ? (
+      {incomingCall && callType === null ? (
         <IncomingCallDialog
           fromUsername={incomingCall.fromUsername}
           callType={incomingCall.callType}

@@ -1,4 +1,4 @@
-import { Phone, Video, X } from "lucide-react";
+import { Phone, PhoneOff, Video } from "lucide-react";
 
 import type { CallType } from "../../lib/types";
 
@@ -17,32 +17,39 @@ export const IncomingCallDialog = ({
 }: IncomingCallDialogProps) => {
   return (
     <div className="incoming-call-banner">
-      <div>
-        <strong>{fromUsername}</strong>
-        <span>{callType === "video" ? "Video" : "Voice"} call incoming</span>
+      {/* Pulsing ring behind avatar */}
+      <div className="incoming-avatar-wrap">
+        <div className="incoming-ring" />
+        <div className="incoming-avatar">
+          {fromUsername.charAt(0).toUpperCase()}
+        </div>
       </div>
-      <div className="button-row">
-        <button 
-          className="ghost-button compact" 
-          type="button" 
+
+      <div className="incoming-info">
+        <strong className="incoming-name">{fromUsername}</strong>
+        <span className="incoming-type">
+          {callType === "video" ? "📹 Incoming video call" : "📞 Incoming voice call"}
+        </span>
+      </div>
+
+      <div className="incoming-actions">
+        <button
+          className="incoming-btn decline"
+          type="button"
           onClick={onDecline}
-          title="Decline call"
+          title="Decline"
         >
-          <X size={16} />
-          Decline
+          <PhoneOff size={18} />
+          <span>Decline</span>
         </button>
-        <button 
-          className="primary-button compact" 
-          type="button" 
+        <button
+          className="incoming-btn accept"
+          type="button"
           onClick={onAccept}
-          title="Accept call"
+          title="Accept"
         >
-          {callType === "video" ? (
-            <Video size={16} />
-          ) : (
-            <Phone size={16} />
-          )}
-          Accept
+          {callType === "video" ? <Video size={18} /> : <Phone size={18} />}
+          <span>Accept</span>
         </button>
       </div>
     </div>
